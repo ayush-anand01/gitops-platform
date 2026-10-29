@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # ---- runtime: unprivileged nginx serving static files ----
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 LABEL org.opencontainers.image.source="https://github.com/ayush-anand01/gitops-platform" \
       org.opencontainers.image.description="TaskApp frontend (React + nginx)"
 ENV BACKEND_URL=http://backend:3000
