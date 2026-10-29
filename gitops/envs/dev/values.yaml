@@ -1,19 +1,15 @@
 # DEV — auto-deployed on every push to main (CI updates the tags below)
 environment: dev
-
 backend:
   image:
     repository: ghcr.io/ayush-anand01/taskapp-backend
-    tag: latest
+    tag: sha-ac60964
   replicas: 1
-
 frontend:
   image:
     repository: ghcr.io/ayush-anand01/taskapp-frontend
-    tag: latest
-
+    tag: sha-ac60964
 postgres:
   password: dev-password
-
 ingress:
   host: dev.taskapp.localtest.me
