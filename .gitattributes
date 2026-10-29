@@ -1,0 +1,2 @@
+# Keep shell scripts and YAML with LF endings so they run in Linux containers/CI
+* text=auto eol=lf

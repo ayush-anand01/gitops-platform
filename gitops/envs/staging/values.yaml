@@ -1,0 +1,22 @@
+# STAGING — promoted from dev via pull request (scripts/promote.sh dev staging)
+environment: staging
+
+backend:
+  image:
+    repository: ghcr.io/ayush-anand01/taskapp-backend
+    tag: latest
+  replicas: 2
+  pdb:
+    enabled: true
+
+frontend:
+  image:
+    repository: ghcr.io/ayush-anand01/taskapp-frontend
+    tag: latest
+  replicas: 2
+
+postgres:
+  password: staging-password
+
+ingress:
+  host: staging.taskapp.localtest.me

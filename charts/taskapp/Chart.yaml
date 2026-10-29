@@ -1,0 +1,6 @@
+apiVersion: v2
+name: taskapp
+description: 3-tier TaskApp (React + Node.js + PostgreSQL) deployed via GitOps
+type: application
+version: 0.1.0        # chart version — bump when templates change
+appVersion: "1.0.0"   # default app version — CI overrides image tags per environment

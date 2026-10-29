@@ -1,0 +1,50 @@
+# One ApplicationSet generates an ArgoCD Application per environment.
+# Each app = the shared Helm chart + that environment's values file.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: taskapp
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - env: dev
+            autoSync: true
+          - env: staging
+            autoSync: true
+          - env: prod
+            autoSync: false   # prod waits for a manual "Sync" in ArgoCD after the PR merges
+  template:
+    metadata:
+      name: "taskapp-{{ .env }}"
+      labels:
+        environment: "{{ .env }}"
+    spec:
+      project: taskapp
+      source:
+        repoURL: https://github.com/ayush-anand01/gitops-platform.git
+        targetRevision: main
+        path: charts/taskapp
+        helm:
+          releaseName: taskapp
+          valueFiles:
+            - "../../gitops/envs/{{ .env }}/values.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "taskapp-{{ .env }}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 3
+          backoff: { duration: 10s, factor: 2, maxDuration: 2m }
+  templatePatch: |
+    {{- if .autoSync }}
+    spec:
+      syncPolicy:
+        automated:
+          prune: true      # delete resources removed from Git
+          selfHeal: true   # revert manual kubectl changes (drift)
+    {{- end }}

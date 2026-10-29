@@ -1,0 +1,52 @@
+{{- $name := printf "%s-frontend" (include "taskapp.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "taskapp.labels" . | nindent 4 }}
+    app.kubernetes.io/name: frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {{- include "taskapp.selector" (dict "ctx" . "component" "frontend") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "taskapp.selector" (dict "ctx" . "component" "frontend") | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.port }}
+          env:
+            # nginx reverse-proxies /api/ to the backend Service
+            - name: BACKEND_URL
+              value: "http://{{ include "taskapp.fullname" . }}-backend:{{ .Values.backend.port }}"
+          livenessProbe:
+            httpGet: { path: /nginx-health, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /nginx-health, port: http }
+            periodSeconds: 5
+          resources: {{- toYaml .Values.frontend.resources | nindent 12 }}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "taskapp.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "taskapp.selector" (dict "ctx" . "component" "frontend") | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

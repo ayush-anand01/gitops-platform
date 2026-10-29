@@ -1,0 +1,110 @@
+{{- $name := printf "%s-backend" (include "taskapp.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "taskapp.labels" . | nindent 4 }}
+    app.kubernetes.io/name: backend
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0   # never drop below desired capacity during a rollout
+      maxSurge: 1
+  selector:
+    matchLabels: {{- include "taskapp.selector" (dict "ctx" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "taskapp.selector" (dict "ctx" . "component" "backend") | nindent 8 }}
+      annotations:
+        # Roll pods when config changes (ConfigMap edits don't restart pods by themselves)
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.backend.port | quote }}
+        prometheus.io/path: /metrics
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          env:
+            - name: PORT
+              value: {{ .Values.backend.port | quote }}
+            - name: APP_VERSION
+              value: {{ .Values.backend.image.tag | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "taskapp.fullname" . }}-config
+            - secretRef:
+                name: {{ include "taskapp.fullname" . }}-db
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 3
+          resources: {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "taskapp.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "taskapp.selector" (dict "ctx" . "component" "backend") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: http
+{{- if .Values.backend.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  labels: {{- include "taskapp.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ .Values.backend.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.backend.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.backend.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- if .Values.backend.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  labels: {{- include "taskapp.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.backend.pdb.minAvailable }}
+  selector:
+    matchLabels: {{- include "taskapp.selector" (dict "ctx" . "component" "backend") | nindent 6 }}
+{{- end }}

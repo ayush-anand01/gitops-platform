@@ -1,0 +1,22 @@
+server {
+    listen 8080;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Reverse-proxy API calls to the backend service (set via BACKEND_URL env)
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok";
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri /index.html;
+    }
+}

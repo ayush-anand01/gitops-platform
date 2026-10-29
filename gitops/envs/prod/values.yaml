@@ -1,0 +1,30 @@
+# PROD — promoted from staging via reviewed pull request (scripts/promote.sh staging prod)
+environment: prod
+
+backend:
+  image:
+    repository: ghcr.io/ayush-anand01/taskapp-backend
+    tag: latest
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+frontend:
+  image:
+    repository: ghcr.io/ayush-anand01/taskapp-frontend
+    tag: latest
+  replicas: 2
+
+postgres:
+  password: prod-password
+  storage: 2Gi
+
+ingress:
+  host: taskapp.localtest.me

@@ -1,0 +1,16 @@
+# AppProject: limits which repo the apps may pull from and which namespaces they may deploy into
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: taskapp
+  namespace: argocd
+spec:
+  description: TaskApp across dev, staging and prod
+  sourceRepos:
+    - https://github.com/ayush-anand01/gitops-platform.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: taskapp-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

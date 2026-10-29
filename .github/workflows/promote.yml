@@ -1,0 +1,42 @@
+# Manual promotion: copies the image tags from one environment to the next and opens a PR.
+# Merging the PR is the approval; ArgoCD then deploys it.
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: Source environment
+        type: choice
+        options: [dev, staging]
+      to:
+        description: Target environment
+        type: choice
+        options: [staging, prod]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy image tags
+        id: copy
+        run: ./scripts/promote.sh "${{ inputs.from }}" "${{ inputs.to }}"
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(yq '.backend.image.tag' gitops/envs/${{ inputs.to }}/values.yaml)
+          branch="promote/${{ inputs.to }}-$tag"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -am "promote(${{ inputs.to }}): $tag from ${{ inputs.from }}"
+          git push -u origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Promote $tag to ${{ inputs.to }}" \
+            --body "Promotes image tag \`$tag\` from **${{ inputs.from }}** to **${{ inputs.to }}**. Merge to deploy via ArgoCD."
