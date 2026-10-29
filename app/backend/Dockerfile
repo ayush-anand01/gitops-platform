@@ -9,8 +9,9 @@ FROM node:24-alpine
 LABEL org.opencontainers.image.source="https://github.com/ayush-anand01/gitops-platform" \
       org.opencontainers.image.description="TaskApp backend (Node.js API)"
 ENV NODE_ENV=production
-# npm/yarn aren't needed at runtime; removing them drops a common source of scanner CVEs
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
+# Apply pending Alpine security patches; npm/yarn aren't needed at runtime and are a common source of CVEs
+RUN apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./

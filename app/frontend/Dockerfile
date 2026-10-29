@@ -10,6 +10,10 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.31-alpine
 LABEL org.opencontainers.image.source="https://github.com/ayush-anand01/gitops-platform" \
       org.opencontainers.image.description="TaskApp frontend (React + nginx)"
+# Apply Alpine security patches the base image hasn't picked up yet, then drop back to the nginx user
+USER root
+RUN apk upgrade --no-cache
+USER 101
 ENV BACKEND_URL=http://backend:3000
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
