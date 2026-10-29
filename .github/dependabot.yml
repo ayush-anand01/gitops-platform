@@ -1,4 +1,4 @@
-# Weekly dependency updates; each PR runs the full CI (tests + Trivy gate)
+# Weekly dependency updates, grouped to keep PR noise low; each PR runs the full CI (tests + Trivy gate)
 version: 2
 updates:
   - package-ecosystem: npm
@@ -13,14 +13,18 @@ updates:
     groups:
       frontend-deps: { patterns: ["*"] }
 
+  # Base images: take patch/minor updates; Node majors are moved manually between LTS releases
   - package-ecosystem: docker
-    directory: /app/backend
+    directories: [/app/backend, /app/frontend]
     schedule: { interval: weekly }
-
-  - package-ecosystem: docker
-    directory: /app/frontend
-    schedule: { interval: weekly }
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+    groups:
+      base-images: { patterns: ["*"] }
 
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }

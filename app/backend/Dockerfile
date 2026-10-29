@@ -1,11 +1,11 @@
 # ---- deps: install production dependencies only ----
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # ---- runtime: small image, non-root user ----
-FROM node:22-alpine
+FROM node:24-alpine
 LABEL org.opencontainers.image.source="https://github.com/ayush-anand01/gitops-platform" \
       org.opencontainers.image.description="TaskApp backend (Node.js API)"
 ENV NODE_ENV=production

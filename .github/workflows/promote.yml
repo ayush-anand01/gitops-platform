@@ -22,7 +22,7 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Copy image tags
         id: copy
         run: ./scripts/promote.sh "${{ inputs.from }}" "${{ inputs.to }}"
