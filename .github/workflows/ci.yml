@@ -76,7 +76,7 @@ jobs:
           echo "image=ghcr.io/$owner/taskapp-${{ matrix.service }}" >> "$GITHUB_OUTPUT"
           echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build image (load locally for scanning)
         uses: docker/build-push-action@v6
